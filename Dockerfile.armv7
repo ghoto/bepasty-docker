@@ -1,6 +1,10 @@
 FROM buildpack-deps:stretch-scm
 MAINTAINER Elghoto
 
+ARG UID=1000
+ARG GID=1000
+ARG PORT=5000
+
 RUN apt-get update && apt-get upgrade -y && apt-get install -y python-pip python-dev locales
 RUN pip install bepasty uwsgi
 
@@ -10,16 +14,20 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en  
 ENV LC_ALL en_US.UTF-8
 
+RUN groupadd -g $GID -r bepasty && useradd --no-log-init -u $UID -r -g bepasty bepasty
+
+USER bepasty
+
 VOLUME /srv/bepasty
 ENV BEPASTY_CONFIG /srv/bepasty/bepasty.conf
 ENV PYTHONUNBUFFERED 0
-EXPOSE 5000
+EXPOSE $PORT
 
-WORKDIR /opt
+WORKDIR /home/bepasty
 
-ADD start.sh /opt/start.sh
-ADD bepasty.conf /opt/bepasty.conf
-ADD wsgi.py /opt/wsgi.py
-RUN chmod 550 /opt/start.sh
+COPY --chown=bepasty start.sh /home/bepasty/start.sh
+COPY --chown=bepasty bepasty.conf /home/bepasty/bepasty.conf
+COPY --chown=bepasty wsgi.py /home/bepasty/wsgi.py
+RUN chmod 550 /home/bepasty/start.sh
 
 CMD ["./start.sh"]
